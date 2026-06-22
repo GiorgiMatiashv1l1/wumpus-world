@@ -3,32 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wumpus World — Nodar Menteshashvili</title>
+<title>Giorgi Matiashvili</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap');
-
+ 
   :root {
-    --cave-bg: #0a0c10;
-    --panel-bg: #0f1218;
-    --border: #1e2430;
-    --accent: #00c896;
-    --accent2: #f0a500;
-    --danger: #e84040;
-    --text: #c8d4e8;
-    --text-dim: #4a5568;
-    --text-bright: #eef2ff;
-    --cell-bg: #141820;
-    --cell-border: #1e2430;
-    --safe-glow: rgba(0,200,150,0.15);
-    --wumpus-glow: rgba(232,64,64,0.2);
-    --pit-glow: rgba(80,80,220,0.2);
-    --gold-glow: rgba(240,165,0,0.25);
+    --cave-bg: #050d07;
+    --panel-bg: #091209;
+    --border: #1a3320;
+    --accent: #4caf74;
+    --accent2: #a8e063;
+    --danger: #e05c3a;
+    --text: #b8d4b0;
+    --text-dim: #3a5c40;
+    --text-bright: #e8f5e0;
+    --cell-bg: #0a1a0c;
+    --cell-border: #1a3320;
+    --safe-glow: rgba(76,175,100,0.18);
+    --wumpus-glow: rgba(224,92,58,0.22);
+    --pit-glow: rgba(30,80,40,0.3);
+    --gold-glow: rgba(168,224,99,0.22);
     --font-mono: 'Share Tech Mono', monospace;
     --font-ui: 'Rajdhani', sans-serif;
   }
-
+ 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
+ 
   body {
     background: var(--cave-bg);
     color: var(--text);
@@ -41,7 +41,7 @@
     padding: 16px 8px;
     overflow-x: hidden;
   }
-
+ 
   /* ── Header ───────────────────────────────────────────────── */
   .header {
     width: 100%;
@@ -72,7 +72,7 @@
     letter-spacing: 2px;
     margin-top: 2px;
   }
-
+ 
   /* ── Main layout ──────────────────────────────────────────── */
   .game-layout {
     width: 100%;
@@ -82,7 +82,7 @@
     grid-template-rows: auto auto;
     gap: 10px;
   }
-
+ 
   /* ── Panels ───────────────────────────────────────────────── */
   .panel {
     background: var(--panel-bg);
@@ -100,10 +100,10 @@
     border-bottom: 1px solid var(--border);
     padding-bottom: 6px;
   }
-
+ 
   /* ── Left panel ───────────────────────────────────────────── */
   .left-panel { grid-column: 1; grid-row: 1; }
-
+ 
   .score-display {
     text-align: center;
     margin-bottom: 14px;
@@ -116,7 +116,7 @@
     font-family: var(--font-mono);
     line-height: 1.1;
   }
-
+ 
   .stat-row {
     display: flex;
     justify-content: space-between;
@@ -127,7 +127,7 @@
     border-bottom: 1px solid var(--border);
   }
   .stat-val { color: var(--text); }
-
+ 
   .btn {
     width: 100%;
     padding: 8px;
@@ -148,15 +148,15 @@
     font-weight: 700;
   }
   .btn-start:hover { background: #00e0aa; }
-  .btn-start:disabled { background: #1a2e28; border-color: #1a2e28; color: var(--text-dim); cursor: not-allowed; }
-
+  .btn-start:disabled { background: #0f2412; border-color: #0f2412; color: var(--text-dim); cursor: not-allowed; }
+ 
   .btn-restart {
     background: transparent;
     border-color: var(--border);
     color: var(--text-dim);
   }
   .btn-restart:hover { border-color: var(--text-dim); color: var(--text); }
-
+ 
   .arrow-ind {
     display: inline-block;
     width: 8px; height: 8px;
@@ -165,7 +165,7 @@
     margin-right: 4px;
   }
   .arrow-ind.used { background: var(--text-dim); }
-
+ 
   /* ── Cave grid ────────────────────────────────────────────── */
   .cave-panel {
     grid-column: 2;
@@ -186,7 +186,7 @@
     gap: 3px;
     border: 1px solid var(--border);
   }
-
+ 
   .cell {
     position: relative;
     background: var(--cell-bg);
@@ -200,22 +200,22 @@
     font-size: 10px;
     color: var(--text-dim);
   }
-
-  .cell.fog { background: #0c0e12; }
+ 
+  .cell.fog { background: #060e07; }
   .cell.fog::after {
     content: '?';
     font-size: 22px;
-    color: #1a2030;
+    color: #142018;
     font-family: var(--font-mono);
   }
-
+ 
   .cell.agent-here { box-shadow: inset 0 0 0 2px var(--accent); }
-  .cell.safe { background: #0f1a16; }
-  .cell.wumpus-cell { background: #1a0f0f; box-shadow: inset 0 0 20px var(--wumpus-glow); }
-  .cell.pit-cell { background: #0d0d1a; box-shadow: inset 0 0 20px var(--pit-glow); }
-  .cell.gold-cell { background: #1a1500; box-shadow: inset 0 0 20px var(--gold-glow); }
-  .cell.dead-cell { background: #1a0000; }
-
+  .cell.safe { background: #0b1a0d; }
+  .cell.wumpus-cell { background: #1a0d08; box-shadow: inset 0 0 20px var(--wumpus-glow); }
+  .cell.pit-cell { background: #080f09; box-shadow: inset 0 0 20px var(--pit-glow); }
+  .cell.gold-cell { background: #101a08; box-shadow: inset 0 0 20px var(--gold-glow); }
+  .cell.dead-cell { background: #1a0800; }
+ 
   .cell-icons {
     font-size: 24px;
     line-height: 1;
@@ -233,7 +233,7 @@
     font-family: var(--font-mono);
     opacity: 0.5;
   }
-
+ 
   /* percept badges on revealed cells */
   .cell-percepts {
     position: absolute;
@@ -251,10 +251,10 @@
     font-family: var(--font-mono);
     letter-spacing: 0;
   }
-  .pb-stench { background: #2d1a1a; color: #e84040; border: 1px solid #4a1010; }
-  .pb-breeze { background: #1a1a2d; color: #6060e8; border: 1px solid #10104a; }
-  .pb-glitter { background: #2d2500; color: #f0a500; border: 1px solid #4a3800; }
-
+  .pb-stench { background: #2d1008; color: #e05c3a; border: 1px solid #4a1a08; }
+  .pb-breeze { background: #0a1f0d; color: #4caf74; border: 1px solid #1a3320; }
+  .pb-glitter { background: #182d08; color: #a8e063; border: 1px solid #2a4a10; }
+ 
   /* agent sprite */
   .agent-sprite {
     font-size: 26px;
@@ -266,7 +266,7 @@
   .agent-dir-S { transform: rotate(90deg); }
   .agent-dir-W { transform: rotate(180deg); }
   .agent-dir-E { transform: rotate(0deg); }
-
+ 
   /* coordinate labels */
   .grid-col-labels {
     display: grid;
@@ -292,14 +292,14 @@
     align-items: center;
     justify-content: center;
   }
-
+ 
   /* ── Right panel (perception) ─────────────────────────────── */
   .right-panel { grid-column: 3; grid-row: 1; }
-
+ 
   .perc-vector {
     margin-bottom: 10px;
     padding: 8px;
-    background: #0a0c10;
+    background: #040c06;
     border: 1px solid var(--border);
     border-radius: 3px;
   }
@@ -314,14 +314,14 @@
     justify-content: space-between;
     align-items: center;
     padding: 3px 0;
-    border-bottom: 1px solid #1a1e26;
+    border-bottom: 1px solid #142018;
     font-size: 11px;
   }
   .perc-item:last-child { border-bottom: none; }
   .perc-name { color: var(--text-dim); }
-  .perc-on { color: var(--accent2); font-weight: 700; }
-  .perc-off { color: #2a3040; }
-
+  .perc-on { color: #a8e063; font-weight: 700; }
+  .perc-off { color: #1e3822; }
+ 
   .kb-section {
     margin-top: 10px;
   }
@@ -336,14 +336,14 @@
     font-size: 10px;
     color: var(--text);
     padding: 2px 0;
-    border-bottom: 1px solid #1a1e26;
+    border-bottom: 1px solid #142018;
     font-family: var(--font-mono);
     line-height: 1.4;
   }
-  .kb-safe { color: var(--accent); }
-  .kb-danger { color: var(--danger); }
-  .kb-unknown { color: var(--accent2); }
-
+  .kb-safe { color: #4caf74; }
+  .kb-danger { color: #e05c3a; }
+  .kb-unknown { color: #a8e063; }
+ 
   /* ── Bottom reasoning log ─────────────────────────────────── */
   .log-panel {
     grid-column: 1 / 4;
@@ -360,18 +360,18 @@
     font-size: 11px;
     font-family: var(--font-mono);
     padding: 3px 0;
-    border-bottom: 1px solid #0f1218;
+    border-bottom: 1px solid #0a1509;
     display: flex;
     gap: 8px;
     line-height: 1.4;
   }
   .log-step { color: var(--accent2); min-width: 32px; }
   .log-text { color: var(--text); }
-  .log-text.decision { color: var(--accent); }
-  .log-text.danger { color: var(--danger); }
-  .log-text.success { color: #00ff99; }
-  .log-text.info { color: var(--text-dim); }
-
+  .log-text.decision { color: #4caf74; }
+  .log-text.danger { color: #e05c3a; }
+  .log-text.success { color: #a8e063; }
+  .log-text.info { color: #3a5c40; }
+ 
   /* ── Legend ───────────────────────────────────────────────── */
   .legend {
     width: 100%;
@@ -391,13 +391,13 @@
     font-family: var(--font-mono);
   }
   .legend-icon { font-size: 14px; }
-
+ 
   /* ── Overlay messages ─────────────────────────────────────── */
   .overlay-msg {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(10,12,16,0.95);
+    background: rgba(5,13,7,0.97);
     border: 1px solid var(--accent);
     padding: 16px 24px;
     text-align: center;
@@ -408,7 +408,7 @@
   .overlay-msg.show { display: block; }
   .overlay-title { font-size: 18px; font-weight: 700; color: var(--accent2); margin-bottom: 4px; }
   .overlay-sub { font-size: 12px; color: var(--text-dim); font-family: var(--font-mono); }
-
+ 
   /* scan-line aesthetic */
   .cave-panel::after {
     content: '';
@@ -416,8 +416,8 @@
     inset: 0;
     background: repeating-linear-gradient(
       0deg,
-      rgba(0,0,0,0.03) 0px,
-      rgba(0,0,0,0.03) 1px,
+      rgba(0,20,5,0.06) 0px,
+      rgba(0,20,5,0.06) 1px,
       transparent 1px,
       transparent 2px
     );
