@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wumpus World — Nodar Menteshashvili</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+  :root {
+    --cave-bg: #0a0c10;
+    --panel-bg: #0f1218;
+    --border: #1e2430;
+    --accent: #00c896;
+    --accent2: #f0a500;
+    --danger: #e84040;
+    --text: #c8d4e8;
+    --text-dim: #4a5568;
+    --text-bright: #eef2ff;
+    --cell-bg: #141820;
+    --cell-border: #1e2430;
+    --safe-glow: rgba(0,200,150,0.15);
+    --wumpus-glow: rgba(232,64,64,0.2);
+    --pit-glow: rgba(80,80,220,0.2);
+    --gold-glow: rgba(240,165,0,0.25);
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-ui: 'Rajdhani', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--cave-bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 16px 8px;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ───────────────────────────────────────────────── */
+  .header {
+    width: 100%;
+    max-width: 900px;
+    text-align: center;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+  }
+  .header-title {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    margin-bottom: 2px;
+  }
+  .header-name {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-bright);
+    letter-spacing: 1px;
+  }
+  .header-id {
+    font-size: 12px;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+
+  /* ── Main layout ──────────────────────────────────────────── */
+  .game-layout {
+    width: 100%;
+    max-width: 900px;
+    display: grid;
+    grid-template-columns: 150px 1fr 210px;
+    grid-template-rows: auto auto;
+    gap: 10px;
+  }
+
+  /* ── Panels ───────────────────────────────────────────────── */
+  .panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    font-family: var(--font-mono);
+  }
+  .panel-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+  }
+
+  /* ── Left panel ───────────────────────────────────────────── */
+  .left-panel { grid-column: 1; grid-row: 1; }
+
+  .score-display {
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  .score-label { font-size: 9px; color: var(--text-dim); letter-spacing: 2px; }
+  .score-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent2);
+    font-family: var(--font-mono);
+    line-height: 1.1;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-val { color: var(--text); }
+
+  .btn {
+    width: 100%;
+    padding: 8px;
+    border-radius: 3px;
+    border: 1px solid;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    margin-top: 8px;
+  }
+  .btn-start {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 700;
+  }
+  .btn-start:hover { background: #00e0aa; }
+  .btn-start:disabled { background: #1a2e28; border-color: #1a2e28; color: var(--text-dim); cursor: not-allowed; }
+
+  .btn-restart {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-dim);
+  }
+  .btn-restart:hover { border-color: var(--text-dim); color: var(--text); }
+
+  .arrow-ind {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent2);
+    margin-right: 4px;
+  }
+  .arrow-ind.used { background: var(--text-dim); }
+
+  /* ── Cave grid ────────────────────────────────────────────── */
+  .cave-panel {
+    grid-column: 2;
+    grid-row: 1;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .grid-wrap { position: relative; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 88px);
+    grid-template-rows: repeat(4, 88px);
+    gap: 3px;
+    border: 1px solid var(--border);
+  }
+
+  .cell {
+    position: relative;
+    background: var(--cell-bg);
+    border: 1px solid var(--cell-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    overflow: hidden;
+    transition: background 0.3s;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .cell.fog { background: #0c0e12; }
+  .cell.fog::after {
+    content: '?';
+    font-size: 22px;
+    color: #1a2030;
+    font-family: var(--font-mono);
+  }
+
+  .cell.agent-here { box-shadow: inset 0 0 0 2px var(--accent); }
+  .cell.safe { background: #0f1a16; }
+  .cell.wumpus-cell { background: #1a0f0f; box-shadow: inset 0 0 20px var(--wumpus-glow); }
+  .cell.pit-cell { background: #0d0d1a; box-shadow: inset 0 0 20px var(--pit-glow); }
+  .cell.gold-cell { background: #1a1500; box-shadow: inset 0 0 20px var(--gold-glow); }
+  .cell.dead-cell { background: #1a0000; }
+
+  .cell-icons {
+    font-size: 24px;
+    line-height: 1;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1px;
+  }
+  .cell-coord {
+    position: absolute;
+    bottom: 3px;
+    right: 4px;
+    font-size: 9px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    opacity: 0.5;
+  }
+
+  /* percept badges on revealed cells */
+  .cell-percepts {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+    max-width: 60px;
+  }
+  .perc-badge {
+    font-size: 7px;
+    padding: 1px 3px;
+    border-radius: 2px;
+    font-family: var(--font-mono);
+    letter-spacing: 0;
+  }
+  .pb-stench { background: #2d1a1a; color: #e84040; border: 1px solid #4a1010; }
+  .pb-breeze { background: #1a1a2d; color: #6060e8; border: 1px solid #10104a; }
+  .pb-glitter { background: #2d2500; color: #f0a500; border: 1px solid #4a3800; }
+
+  /* agent sprite */
+  .agent-sprite {
+    font-size: 26px;
+    position: relative;
+    z-index: 2;
+    transition: transform 0.4s ease;
+  }
+  .agent-dir-N { transform: rotate(-90deg); }
+  .agent-dir-S { transform: rotate(90deg); }
+  .agent-dir-W { transform: rotate(180deg); }
+  .agent-dir-E { transform: rotate(0deg); }
+
+  /* coordinate labels */
+  .grid-col-labels {
+    display: grid;
+    grid-template-columns: repeat(4, 88px);
+    gap: 3px;
+    margin-bottom: 3px;
+    padding-left: 0;
+  }
+  .grid-row-labels {
+    position: absolute;
+    left: -20px;
+    top: 0;
+    display: grid;
+    grid-template-rows: repeat(4, 88px);
+    gap: 3px;
+    height: calc(4*88px + 3*3px);
+  }
+  .axis-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── Right panel (perception) ─────────────────────────────── */
+  .right-panel { grid-column: 3; grid-row: 1; }
+
+  .perc-vector {
+    margin-bottom: 10px;
+    padding: 8px;
+    background: #0a0c10;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  .perc-pos {
+    font-size: 10px;
+    color: var(--accent);
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .perc-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    border-bottom: 1px solid #1a1e26;
+    font-size: 11px;
+  }
+  .perc-item:last-child { border-bottom: none; }
+  .perc-name { color: var(--text-dim); }
+  .perc-on { color: var(--accent2); font-weight: 700; }
+  .perc-off { color: #2a3040; }
+
+  .kb-section {
+    margin-top: 10px;
+  }
+  .kb-title {
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .kb-entry {
+    font-size: 10px;
+    color: var(--text);
+    padding: 2px 0;
+    border-bottom: 1px solid #1a1e26;
+    font-family: var(--font-mono);
+    line-height: 1.4;
+  }
+  .kb-safe { color: var(--accent); }
+  .kb-danger { color: var(--danger); }
+  .kb-unknown { color: var(--accent2); }
+
+  /* ── Bottom reasoning log ─────────────────────────────────── */
+  .log-panel {
+    grid-column: 1 / 4;
+    grid-row: 2;
+    height: 130px;
+  }
+  .log-scroll {
+    height: 95px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .log-entry {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    padding: 3px 0;
+    border-bottom: 1px solid #0f1218;
+    display: flex;
+    gap: 8px;
+    line-height: 1.4;
+  }
+  .log-step { color: var(--accent2); min-width: 32px; }
+  .log-text { color: var(--text); }
+  .log-text.decision { color: var(--accent); }
+  .log-text.danger { color: var(--danger); }
+  .log-text.success { color: #00ff99; }
+  .log-text.info { color: var(--text-dim); }
+
+  /* ── Legend ───────────────────────────────────────────────── */
+  .legend {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+  }
+  .legend-icon { font-size: 14px; }
+
+  /* ── Overlay messages ─────────────────────────────────────── */
+  .overlay-msg {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(10,12,16,0.95);
+    border: 1px solid var(--accent);
+    padding: 16px 24px;
+    text-align: center;
+    border-radius: 4px;
+    z-index: 10;
+    display: none;
+  }
+  .overlay-msg.show { display: block; }
+  .overlay-title { font-size: 18px; font-weight: 700; color: var(--accent2); margin-bottom: 4px; }
+  .overlay-sub { font-size: 12px; color: var(--text-dim); font-family: var(--font-mono); }
+
+  /* scan-line aesthetic */
+  .cave-panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0,0,0,0.03) 0px,
+      rgba(0,0,0,0.03) 1px,
+      transparent 1px,
+      transparent 2px
+    );
+    pointer-events: none;
+    border-radius: 4px;
+    z-index: 5;
+  }
+  .cave-panel { position: relative; }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
+<div class="header">
+  <div class="header-title">Artificial Intelligence · Wumpus World Simulation</div>
+  <div class="header-name">Nodar Menteshashvili</div>
+  <div class="header-id">Student ID: 001-TBU-AI</div>
+</div>
+
+<!-- ══ GAME LAYOUT ══════════════════════════════════════════════════════════ -->
+<div class="game-layout">
+
+  <!-- LEFT: controls + score -->
+  <div class="panel left-panel">
+    <div class="panel-label">Control</div>
+
+    <div class="score-display">
+      <div class="score-label">Score</div>
+      <div class="score-value" id="score">0</div>
+    </div>
+
+    <div class="stat-row"><span>Steps</span><span class="stat-val" id="steps-counter">0</span></div>
+    <div class="stat-row"><span>Arrow</span>
+      <span class="stat-val"><span class="arrow-ind" id="arrow-dot"></span> <span id="arrow-status">Ready</span></span>
+    </div>
+    <div class="stat-row"><span>Gold</span><span class="stat-val" id="gold-status">—</span></div>
+    <div class="stat-row"><span>Wumpus</span><span class="stat-val" id="wumpus-status">Alive</span></div>
+    <div class="stat-row"><span>Status</span><span class="stat-val" id="game-status">Idle</span></div>
+
+    <button class="btn btn-start" id="btn-start" onclick="startGame()">▶ START</button>
+    <button class="btn btn-restart" id="btn-restart" onclick="restartGame()">↺ RESTART</button>
+  </div>
+
+  <!-- CENTER: cave grid -->
+  <div class="cave-panel" id="cave-panel">
+    <div class="grid-wrap">
+      <div class="grid-col-labels" id="col-labels"></div>
+      <div style="position:relative; display:flex;">
+        <div class="grid-row-labels" id="row-labels"></div>
+        <div class="grid" id="grid"></div>
+      </div>
+      <div class="overlay-msg" id="overlay-msg">
+        <div class="overlay-title" id="overlay-title">—</div>
+        <div class="overlay-sub" id="overlay-sub">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: perception vector + KB -->
+  <div class="panel right-panel">
+    <div class="panel-label">Perception Vector</div>
+
+    <div class="perc-vector">
+      <div class="perc-pos" id="perc-pos">Position: (1,1)</div>
+      <div class="perc-item"><span class="perc-name">Stench</span><span id="p-stench" class="perc-off">—</span></div>
+      <div class="perc-item"><span class="perc-name">Breeze</span><span id="p-breeze" class="perc-off">—</span></div>
+      <div class="perc-item"><span class="perc-name">Glitter</span><span id="p-glitter" class="perc-off">—</span></div>
+      <div class="perc-item"><span class="perc-name">Bump</span><span id="p-bump" class="perc-off">—</span></div>
+      <div class="perc-item"><span class="perc-name">Scream</span><span id="p-scream" class="perc-off">—</span></div>
+    </div>
+
+    <div class="kb-section">
+      <div class="kb-title">Knowledge Base</div>
+      <div id="kb-list" style="max-height:200px;overflow-y:auto;scrollbar-width:thin;"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM: reasoning log -->
+  <div class="panel log-panel">
+    <div class="panel-label">Agent Reasoning Log</div>
+    <div class="log-scroll" id="log-scroll">
+      <div class="log-entry">
+        <span class="log-step">——</span>
+        <span class="log-text info">Waiting to start. Press ▶ START to deploy agent into the cave.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><span class="legend-icon">🦂</span> Wumpus</div>
+  <div class="legend-item"><span class="legend-icon">🕳️</span> Pit</div>
+  <div class="legend-item"><span class="legend-icon">💰</span> Gold</div>
+  <div class="legend-item"><span class="legend-icon">➡️</span> Agent</div>
+  <div class="legend-item"><span class="legend-icon">💨</span> Breeze</div>
+  <div class="legend-item"><span class="legend-icon">🌫️</span> Stench</div>
+  <div class="legend-item"><span class="legend-icon">✨</span> Glitter</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// WUMPUS WORLD ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+
+const GRID_SIZE = 4;
+let world = {};
+let agent = {};
+let gameState = 'idle'; // idle | running | won | dead
+let stepCount = 0;
+let score = 0;
+let arrowUsed = false;
+let wumpusAlive = true;
+let goldCarried = false;
+let logStep = 0;
+let animTimer = null;
+let knowledgeBase = {};   // {r-c : {safe, wumpus, pit, visited, stench, breeze}}
+let plan = [];            // action queue
+
+// ── World generation ──────────────────────────────────────────────────────
+function generateWorld() {
+  world = {
+    pits: new Set(),
+    wumpus: null,
+    gold: null,
+  };
+
+  // Place pits (~3, not at start (1,1))
+  const pitCount = 3;
+  const allCells = [];
+  for (let r = 1; r <= 4; r++)
+    for (let c = 1; c <= 4; c++)
+      if (!(r === 1 && c === 1)) allCells.push(`${r}-${c}`);
+
+  shuffle(allCells);
+  for (let i = 0; i < pitCount; i++) world.pits.add(allCells[i]);
+
+  // Place wumpus (not at start, not overlapping pit)
+  for (let i = pitCount; i < allCells.length; i++) {
+    if (!world.pits.has(allCells[i])) { world.wumpus = allCells[i]; break; }
+  }
+
+  // Place gold (not at start)
+  for (let i = 0; i < allCells.length; i++) {
+    const c = allCells[Math.floor(Math.random() * allCells.length)];
+    if (c !== world.wumpus && c !== '1-1') { world.gold = c; break; }
+  }
+  if (!world.gold) world.gold = '2-2';
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+function neighbors(r, c) {
+  const nb = [];
+  if (r > 1) nb.push([r-1, c]);
+  if (r < 4) nb.push([r+1, c]);
+  if (c > 1) nb.push([r, c-1]);
+  if (c < 4) nb.push([r, c+1]);
+  return nb;
+}
+
+function key(r, c) { return `${r}-${c}`; }
+function parseKey(k) { const p = k.split('-'); return [+p[0], +p[1]]; }
+
+// ── Percepts ──────────────────────────────────────────────────────────────
+function getPercepts(r, c) {
+  const stench  = neighbors(r,c).some(([nr,nc]) => world.wumpus === key(nr,nc) && wumpusAlive);
+  const breeze  = neighbors(r,c).some(([nr,nc]) => world.pits.has(key(nr,nc)));
+  const glitter = world.gold === key(r,c) && !goldCarried;
+  return { stench, breeze, glitter, bump: false, scream: false };
+}
+
+// ── Knowledge Base ────────────────────────────────────────────────────────
+function initKB() {
+  knowledgeBase = {};
+  for (let r = 1; r <= 4; r++)
+    for (let c = 1; c <= 4; c++)
+      knowledgeBase[key(r,c)] = {
+        safe: false, wumpus_possible: true, pit_possible: true,
+        visited: false, stench: null, breeze: null,
+        inferred_safe: false, inferred_wumpus: false, inferred_pit: false
+      };
+  // Start square is always safe
+  knowledgeBase['1-1'].safe = true;
+  knowledgeBase['1-1'].wumpus_possible = false;
+  knowledgeBase['1-1'].pit_possible = false;
+}
+
+function updateKB(r, c, percepts) {
+  const k = key(r,c);
+  const kb = knowledgeBase[k];
+  kb.visited = true;
+  kb.safe = true;
+  kb.wumpus_possible = false;
+  kb.pit_possible = false;
+  kb.stench = percepts.stench;
+  kb.breeze = percepts.breeze;
+
+  if (!percepts.stench) {
+    // No stench → no wumpus in neighbors
+    neighbors(r,c).forEach(([nr,nc]) => {
+      knowledgeBase[key(nr,nc)].wumpus_possible = false;
+    });
+  }
+  if (!percepts.breeze) {
+    // No breeze → no pits in neighbors
+    neighbors(r,c).forEach(([nr,nc]) => {
+      knowledgeBase[key(nr,nc)].pit_possible = false;
+      knowledgeBase[key(nr,nc)].inferred_safe = true;
+    });
+  }
+
+  // Infer: if only one unvisited neighbor has stench, it's the wumpus
+  if (percepts.stench) {
+    const possibleWumpus = neighbors(r,c)
+      .filter(([nr,nc]) => {
+        const nb = knowledgeBase[key(nr,nc)];
+        return !nb.visited && nb.wumpus_possible;
+      });
+    if (possibleWumpus.length === 1) {
+      const [wr,wc] = possibleWumpus[0];
+      knowledgeBase[key(wr,wc)].inferred_wumpus = true;
+    }
+  }
+  if (percepts.breeze) {
+    const possiblePits = neighbors(r,c)
+      .filter(([nr,nc]) => {
+        const nb = knowledgeBase[key(nr,nc)];
+        return !nb.visited && nb.pit_possible;
+      });
+    if (possiblePits.length === 1) {
+      const [pr,pc] = possiblePits[0];
+      knowledgeBase[key(pr,pc)].inferred_pit = true;
+    }
+  }
+}
+
+// ── Agent decision logic ──────────────────────────────────────────────────
+function decidePlan() {
+  const r = agent.row, c = agent.col;
+
+  // 1. If holding gold and at start → done (already handled)
+  if (goldCarried && r === 1 && c === 1) return ['climb'];
+
+  // 2. Pick up gold if here
+  if (world.gold === key(r,c) && !goldCarried) return ['grab'];
+
+  // 3. Find safe unvisited neighbors
+  const safeUnvisited = neighbors(r,c).filter(([nr,nc]) => {
+    const kb = knowledgeBase[key(nr,nc)];
+    return !kb.visited && (kb.safe || kb.inferred_safe || (!kb.pit_possible && !kb.wumpus_possible));
+  });
+
+  // 4. If gold known and not yet grabbed, navigate toward it
+  if (!goldCarried) {
+    const goldRC = parseKey(world.gold).join('-') === '?' ? null : parseKey(world.gold);
+    // Check if gold cell is known safe
+    if (goldRC) {
+      const gk = key(goldRC[0], goldRC[1]);
+      if (knowledgeBase[gk].inferred_safe || knowledgeBase[gk].safe) {
+        const path = bfs(r, c, goldRC[0], goldRC[1]);
+        if (path && path.length > 0) return pathToActions(r, c, path);
+      }
+    }
+  }
+
+  if (safeUnvisited.length > 0) {
+    // Move to safest unvisited
+    const [nr, nc] = safeUnvisited[0];
+    return moveToward(r, c, nr, nc);
+  }
+
+  // 5. Try shooting if wumpus inferred
+  if (!arrowUsed && wumpusAlive) {
+    for (let rr = 1; rr <= 4; rr++)
+      for (let cc = 1; cc <= 4; cc++) {
+        if (knowledgeBase[key(rr,cc)].inferred_wumpus) {
+          const actions = shootToward(r, c, rr, cc);
+          if (actions) return actions;
+        }
+      }
+  }
+
+  // 6. Backtrack: go to nearest visited cell with unexplored safe neighbor
+  const path = bfsToFrontier(r, c);
+  if (path && path.length > 0) return pathToActions(r, c, path);
+
+  // 7. No safe moves, try random unknown neighbor (risk)
+  const unknown = neighbors(r,c).filter(([nr,nc]) => {
+    const kb = knowledgeBase[key(nr,nc)];
+    return !kb.visited && !kb.inferred_pit && !kb.inferred_wumpus;
+  });
+  if (unknown.length > 0) {
+    const [nr, nc] = unknown[0];
+    return moveToward(r, c, nr, nc);
+  }
+
+  // 8. Give up — go home
+  const home = bfs(r, c, 1, 1);
+  if (home && home.length > 0) return [...pathToActions(r, c, home), 'climb'];
+  return ['climb'];
+}
+
+function moveToward(r, c, tr, tc) {
+  // Return actions to move one step toward (tr,tc) if adjacent
+  if (Math.abs(r-tr)+Math.abs(c-tc) === 1) {
+    const actions = turnToFace(r, c, tr, tc);
+    actions.push('forward');
+    return actions;
+  }
+  const path = bfs(r, c, tr, tc);
+  if (path && path.length > 0) return pathToActions(r, c, path);
+  return ['climb'];
+}
+
+function pathToActions(r, c, path) {
+  const actions = [];
+  let cr = r, cc = c, dir = agent.dir;
+  for (const [nr, nc] of path) {
+    const turns = turnSequence(dir, cr, cc, nr, nc);
+    actions.push(...turns.turns);
+    actions.push('forward');
+    dir = turns.newDir;
+    cr = nr; cc = nc;
+  }
+  return actions;
+}
+
+function turnToFace(r, c, tr, tc) {
+  const needed = dirTo(r, c, tr, tc);
+  return turnTo(agent.dir, needed);
+}
+
+function dirTo(r, c, tr, tc) {
+  if (tr > r) return 'N';
+  if (tr < r) return 'S';
+  if (tc > c) return 'E';
+  return 'W';
+}
+
+function turnTo(from, to) {
+  const order = ['N','E','S','W'];
+  const fi = order.indexOf(from), ti = order.indexOf(to);
+  if (fi === ti) return [];
+  const right = ((ti - fi + 4) % 4);
+  const left  = ((fi - ti + 4) % 4);
+  if (right <= left) return Array(right).fill('turnRight');
+  return Array(left).fill('turnLeft');
+}
+
+function turnSequence(dir, r, c, tr, tc) {
+  const needed = dirTo(r, c, tr, tc);
+  const turns = turnTo(dir, needed);
+  return { turns, newDir: needed };
+}
+
+function shootToward(r, c, wr, wc) {
+  const needed = dirTo(r, c, wr, wc);
+  if (r !== wr && c !== wc) return null; // not in same row/col
+  const turns = turnTo(agent.dir, needed);
+  return [...turns, 'shoot'];
+}
+
+// BFS for pathfinding through safe/visited cells
+function bfs(sr, sc, gr, gc) {
+  if (sr === gr && sc === gc) return [];
+  const visited = new Set([key(sr,sc)]);
+  const queue = [[sr,sc,[]]];
+  while (queue.length) {
+    const [r,c,path] = queue.shift();
+    for (const [nr,nc] of neighbors(r,c)) {
+      const nk = key(nr,nc);
+      if (visited.has(nk)) continue;
+      const kb = knowledgeBase[nk];
+      if (!kb.safe && !kb.inferred_safe && !kb.visited) continue;
+      visited.add(nk);
+      const newPath = [...path,[nr,nc]];
+      if (nr===gr && nc===gc) return newPath;
+      queue.push([nr,nc,newPath]);
+    }
+  }
+  return null;
+}
+
+// BFS to nearest frontier (visited cell with safe unvisited neighbor)
+function bfsToFrontier(sr, sc) {
+  const visited = new Set([key(sr,sc)]);
+  const queue = [[sr,sc,[]]];
+  while (queue.length) {
+    const [r,c,path] = queue.shift();
+    const hasUnexplored = neighbors(r,c).some(([nr,nc]) => {
+      const kb = knowledgeBase[key(nr,nc)];
+      return !kb.visited && (kb.safe || kb.inferred_safe || (!kb.pit_possible && !kb.wumpus_possible));
+    });
+    if (hasUnexplored && (r!==sr||c!==sc)) return path;
+    for (const [nr,nc] of neighbors(r,c)) {
+      const nk = key(nr,nc);
+      if (visited.has(nk)) continue;
+      const kb = knowledgeBase[nk];
+      if (!kb.safe && !kb.inferred_safe && !kb.visited) continue;
+      visited.add(nk);
+      queue.push([nr,nc,[...path,[nr,nc]]]);
+    }
+  }
+  return null;
+}
+
+// ── Game loop ─────────────────────────────────────────────────────────────
+function startGame() {
+  if (gameState !== 'idle') return;
+  gameState = 'running';
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('game-status').textContent = 'Running';
+  log('—', 'Agent deployed at (1,1), facing East', 'info');
+  log('—', 'Initial KB: (1,1) is safe, all others unknown', 'info');
+  scheduleStep();
+}
+
+function scheduleStep() {
+  if (gameState !== 'running') return;
+  animTimer = setTimeout(doStep, 650);
+}
+
+function doStep() {
+  if (gameState !== 'running') return;
+
+  const r = agent.row, c = agent.col;
+  const percepts = getPercepts(r, c);
+
+  // Update KB
+  updateKB(r, c, percepts);
+
+  // Show percepts
+  showPercepts(r, c, percepts);
+
+  // Decide next action
+  if (plan.length === 0) {
+    plan = decidePlan();
+    if (plan.length === 0) plan = ['climb'];
+  }
+
+  const action = plan.shift();
+  logStep++;
+  score -= 1; // each action costs 1
+
+  executeAction(action, percepts);
+  renderGrid();
+  updateUI();
+
+  // Check game end
+  if (gameState === 'running') scheduleStep();
+}
+
+function executeAction(action, percepts) {
+  const r = agent.row, c = agent.col;
+
+  if (action === 'turnRight') {
+    const dirs = ['N','E','S','W'];
+    agent.dir = dirs[(dirs.indexOf(agent.dir)+1)%4];
+    log(logStep, `Turn RIGHT → now facing ${agent.dir}`, 'info');
+
+  } else if (action === 'turnLeft') {
+    const dirs = ['N','E','S','W'];
+    agent.dir = dirs[(dirs.indexOf(agent.dir)+3)%4];
+    log(logStep, `Turn LEFT → now facing ${agent.dir}`, 'info');
+
+  } else if (action === 'forward') {
+    const deltas = {N:[1,0],S:[-1,0],E:[0,1],W:[0,-1]};
+    const [dr,dc] = deltas[agent.dir];
+    const nr = r+dr, nc = c+dc;
+
+    if (nr<1||nr>4||nc<1||nc>4) {
+      agent.lastBump = true;
+      log(logStep, `BUMP! Wall encountered facing ${agent.dir}`, 'info');
+    } else {
+      agent.lastBump = false;
+      agent.row = nr; agent.col = nc;
+      stepCount++;
+      log(logStep, `Move FORWARD → now at (${nc},${nr})`, 'decision');
+
+      // Check hazards
+      if (world.pits.has(key(nr,nc))) {
+        score -= 1000;
+        log(logStep, `⚠ FELL INTO PIT at (${nc},${nr})! Game over.`, 'danger');
+        endGame('dead', '💀 FELL IN PIT');
+        return;
+      }
+      if (world.wumpus === key(nr,nc) && wumpusAlive) {
+        score -= 1000;
+        log(logStep, `⚠ EATEN BY WUMPUS at (${nc},${nr})! Game over.`, 'danger');
+        endGame('dead', '💀 EATEN BY WUMPUS');
+        return;
+      }
+    }
+
+  } else if (action === 'grab') {
+    if (world.gold === key(r,c) && !goldCarried) {
+      goldCarried = true;
+      score += 1000;
+      log(logStep, `🏆 GOLD GRABBED at (${c},${r})! +1000 pts`, 'success');
+      document.getElementById('gold-status').textContent = 'Carried!';
+      // Now plan to go home
+      plan = [];
+    }
+
+  } else if (action === 'shoot') {
+    if (!arrowUsed && wumpusAlive) {
+      arrowUsed = true;
+      score -= 10;
+      document.getElementById('arrow-dot').className = 'arrow-ind used';
+      document.getElementById('arrow-status').textContent = 'Used';
+      // Check if arrow hits
+      const [wr,wc] = parseKey(world.wumpus);
+      const inLine = (agent.dir==='N'&&wc===c&&wr>r) ||
+                     (agent.dir==='S'&&wc===c&&wr<r) ||
+                     (agent.dir==='E'&&wr===r&&wc>c) ||
+                     (agent.dir==='W'&&wr===r&&wc<c);
+      if (inLine) {
+        wumpusAlive = false;
+        log(logStep, `🏹 ARROW FIRED → WUMPUS KILLED! Scream heard.`, 'success');
+        document.getElementById('wumpus-status').textContent = '💀 Dead';
+        // Clear wumpus_possible everywhere
+        for (let rr=1;rr<=4;rr++)
+          for (let cc=1;cc<=4;cc++)
+            knowledgeBase[key(rr,cc)].wumpus_possible = false;
+      } else {
+        log(logStep, `🏹 ARROW FIRED → missed. Arrow wasted.`, 'info');
+      }
+    }
+
+  } else if (action === 'climb') {
+    if (r===1 && c===1) {
+      if (goldCarried) {
+        score += 1000;
+        log(logStep, `🎉 CLIMBED OUT WITH GOLD! Victory!`, 'success');
+        endGame('won', '🏆 VICTORY!');
+      } else {
+        log(logStep, `Climbed out without gold. Survival exit.`, 'info');
+        endGame('won', '🚶 ESCAPED');
+      }
+    } else {
+      log(logStep, `Cannot climb — not at (1,1). Replanning.`, 'info');
+    }
+  }
+
+  // Reasoning log
+  logReasoning(action);
+}
+
+function logReasoning(action) {
+  const r = agent.row, c = agent.col;
+  const kb = knowledgeBase[key(r,c)] || {};
+
+  if (action === 'forward') {
+    const percepts = getPercepts(r,c);
+    let reasoning = '';
+    if (percepts.stench && percepts.breeze) reasoning = 'Stench+Breeze detected → high danger zone, proceeding cautiously';
+    else if (percepts.stench) reasoning = 'Stench detected → Wumpus nearby; avoid unvisited stench-adjacent cells';
+    else if (percepts.breeze) reasoning = 'Breeze detected → Pit nearby; avoid unvisited breeze-adjacent cells';
+    else reasoning = 'No percepts → all neighbors are safe to mark';
+    if (reasoning) log('→', reasoning, 'info');
+
+    // safe cell inference
+    const safeNbs = neighbors(r,c).filter(([nr,nc]) => {
+      const nkb = knowledgeBase[key(nr,nc)];
+      return !nkb.pit_possible && !nkb.wumpus_possible && !nkb.visited;
+    });
+    if (safeNbs.length > 0) {
+      const coords = safeNbs.map(([nr,nc]) => `(${nc},${nr})`).join(', ');
+      log('→', `Infer safe: ${coords}`, 'info');
+    }
+  }
+}
+
+function endGame(result, msg) {
+  gameState = result;
+  clearTimeout(animTimer);
+  const overlay = document.getElementById('overlay-msg');
+  document.getElementById('overlay-title').textContent = msg;
+  document.getElementById('overlay-sub').textContent = `Score: ${score} | Steps: ${stepCount}`;
+  overlay.classList.add('show');
+  document.getElementById('game-status').textContent = result === 'won' ? 'Victory!' : 'Dead';
+  updateUI();
+  renderGrid();
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+function buildGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  const colLabels = document.getElementById('col-labels');
+  colLabels.innerHTML = '';
+  for (let c = 1; c <= 4; c++) {
+    const el = document.createElement('div');
+    el.className = 'axis-label';
+    el.style.fontSize = '10px';
+    el.style.color = 'var(--text-dim)';
+    el.style.fontFamily = 'var(--font-mono)';
+    el.style.textAlign = 'center';
+    el.textContent = c;
+    colLabels.appendChild(el);
+  }
+
+  const rowLabels = document.getElementById('row-labels');
+  rowLabels.innerHTML = '';
+  for (let r = 4; r >= 1; r--) {
+    const el = document.createElement('div');
+    el.className = 'axis-label';
+    el.textContent = r;
+    rowLabels.appendChild(el);
+  }
+
+  // Build cells row 4 at top → row 1 at bottom
+  for (let r = 4; r >= 1; r--) {
+    for (let c = 1; c <= 4; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.id = `cell-${r}-${c}`;
+      const coord = document.createElement('div');
+      coord.className = 'cell-coord';
+      coord.textContent = `${c},${r}`;
+      cell.appendChild(coord);
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function renderGrid() {
+  for (let r = 1; r <= 4; r++) {
+    for (let c = 1; c <= 4; c++) {
+      const cell = document.getElementById(`cell-${r}-${c}`);
+      const kb = knowledgeBase[key(r,c)];
+      const isAgent = (r === agent.row && c === agent.col);
+      const isStart = (r === 1 && c === 1);
+
+      // Classes
+      let cls = 'cell';
+      if (!kb || !kb.visited) {
+        if (!isStart && !isAgent) { cls += ' fog'; }
+      } else {
+        cls += ' safe';
+        if (world.pits.has(key(r,c))) cls += ' pit-cell';
+        if (world.wumpus === key(r,c)) cls += (wumpusAlive ? ' wumpus-cell' : '');
+        if (world.gold === key(r,c) && !goldCarried) cls += ' gold-cell';
+      }
+      if (isAgent) cls += ' agent-here';
+      if (gameState === 'dead' && isAgent) cls += ' dead-cell';
+
+      cell.className = cls;
+
+      // Clear dynamic content (keep coord)
+      const coord = cell.querySelector('.cell-coord');
+      cell.innerHTML = '';
+      if (coord) cell.appendChild(coord);
+
+      // Draw cell contents
+      const kb2 = knowledgeBase[key(r,c)];
+      if (kb2 && (kb2.visited || isAgent || isStart)) {
+        // Percept badges
+        const badges = document.createElement('div');
+        badges.className = 'cell-percepts';
+        if (kb2.stench) { const b=document.createElement('div'); b.className='perc-badge pb-stench'; b.textContent='STN'; badges.appendChild(b); }
+        if (kb2.breeze) { const b=document.createElement('div'); b.className='perc-badge pb-breeze'; b.textContent='BRZ'; badges.appendChild(b); }
+        if (world.gold===key(r,c)&&!goldCarried&&(kb2.visited||isAgent)) {
+          const b=document.createElement('div'); b.className='perc-badge pb-glitter'; b.textContent='GLT'; badges.appendChild(b);
+        }
+        cell.appendChild(badges);
+
+        // Icons
+        const icons = document.createElement('div');
+        icons.className = 'cell-icons';
+        if (world.pits.has(key(r,c))) icons.textContent += '🕳️';
+        if (world.wumpus===key(r,c) && !isAgent) icons.textContent += (wumpusAlive?'🦂':'💀');
+        if (world.gold===key(r,c)&&!goldCarried&&!isAgent) icons.textContent += '💰';
+        if (isAgent) {
+          const sprite = document.createElement('div');
+          sprite.className = `agent-sprite agent-dir-${agent.dir}`;
+          sprite.textContent = gameState === 'dead' ? '💀' : '➡️';
+          cell.appendChild(sprite);
+        }
+        if (icons.textContent) cell.appendChild(icons);
+
+        // KB inferences overlay
+        if (!kb2.visited && !isAgent) {
+          const inf = document.createElement('div');
+          inf.style.cssText='font-size:8px;color:var(--text-dim);font-family:var(--font-mono);text-align:center';
+          if (kb2.inferred_wumpus) inf.textContent='⚠W';
+          else if (kb2.inferred_pit) inf.textContent='⚠P';
+          else if (kb2.inferred_safe) inf.textContent='OK';
+          if (inf.textContent) cell.appendChild(inf);
+        }
+      }
+
+      // Fog overlay for unvisited unknown
+      if (!kb2 || (!kb2.visited && !isAgent && !isStart)) {
+        cell.classList.add('fog');
+        const q = document.createElement('div');
+        q.style.cssText='font-size:22px;color:#1a2030;font-family:var(--font-mono);';
+        q.textContent='?';
+        // Only show inferences, not contents
+        if (kb2) {
+          if (kb2.inferred_wumpus) q.textContent='⚠W';
+          else if (kb2.inferred_pit) q.textContent='⚠P';
+          else if (kb2.inferred_safe) q.textContent='✓';
+        }
+        cell.appendChild(q);
+      }
+    }
+  }
+}
+
+function showPercepts(r, c, p) {
+  document.getElementById('perc-pos').textContent = `Position: (${c},${r})`;
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (val) { el.textContent = 'YES'; el.className = 'perc-on'; }
+    else { el.textContent = '—'; el.className = 'perc-off'; }
+  };
+  set('p-stench', p.stench);
+  set('p-breeze', p.breeze);
+  set('p-glitter', p.glitter);
+  set('p-bump', agent.lastBump);
+  set('p-scream', false);
+}
+
+function updateKBDisplay() {
+  const list = document.getElementById('kb-list');
+  list.innerHTML = '';
+  for (let r = 4; r >= 1; r--) {
+    for (let c = 1; c <= 4; c++) {
+      const kb = knowledgeBase[key(r,c)];
+      if (!kb || (!kb.visited && !kb.inferred_safe && !kb.inferred_wumpus && !kb.inferred_pit)) continue;
+      const el = document.createElement('div');
+      el.className = 'kb-entry';
+      let status = '';
+      let cls = '';
+      if (kb.visited) { status = 'visited, safe'; cls = 'kb-safe'; }
+      else if (kb.inferred_safe) { status = 'inferred safe'; cls = 'kb-safe'; }
+      else if (kb.inferred_wumpus) { status = '⚠ wumpus likely'; cls = 'kb-danger'; }
+      else if (kb.inferred_pit) { status = '⚠ pit likely'; cls = 'kb-danger'; }
+      el.innerHTML = `<span style="color:var(--text-dim)">(${c},${r})</span> <span class="${cls}">${status}</span>`;
+      list.appendChild(el);
+    }
+  }
+}
+
+function updateUI() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('steps-counter').textContent = stepCount;
+  updateKBDisplay();
+}
+
+// ── Logging ───────────────────────────────────────────────────────────────
+function log(step, text, type) {
+  const scroll = document.getElementById('log-scroll');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-step">${String(step).padStart(2,'0')}</span><span class="log-text ${type}">${text}</span>`;
+  scroll.appendChild(entry);
+  scroll.scrollTop = scroll.scrollHeight;
+}
+
+// ── Init / Restart ────────────────────────────────────────────────────────
+function initGame() {
+  generateWorld();
+  initKB();
+
+  agent = { row: 1, col: 1, dir: 'E', lastBump: false };
+  stepCount = 0;
+  score = 0;
+  arrowUsed = false;
+  wumpusAlive = true;
+  goldCarried = false;
+  logStep = 0;
+  plan = [];
+  gameState = 'idle';
+
+  document.getElementById('score').textContent = '0';
+  document.getElementById('steps-counter').textContent = '0';
+  document.getElementById('gold-status').textContent = '—';
+  document.getElementById('wumpus-status').textContent = 'Alive';
+  document.getElementById('game-status').textContent = 'Idle';
+  document.getElementById('arrow-dot').className = 'arrow-ind';
+  document.getElementById('arrow-status').textContent = 'Ready';
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('overlay-msg').classList.remove('show');
+  document.getElementById('perc-pos').textContent = 'Position: (1,1)';
+  ['p-stench','p-breeze','p-glitter','p-bump','p-scream'].forEach(id => {
+    const el = document.getElementById(id);
+    el.textContent = '—'; el.className = 'perc-off';
+  });
+
+  document.getElementById('log-scroll').innerHTML = '';
+  log('00', 'New cave generated. Agent ready at (1,1).', 'info');
+  log('00', `World: ${world.pits.size} pits, 1 wumpus, 1 gold (locations hidden).`, 'info');
+
+  buildGrid();
+  renderGrid();
+  updateKBDisplay();
+}
+
+function restartGame() {
+  clearTimeout(animTimer);
+  initGame();
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────
+window.onload = () => initGame();
+</script>
+</body>
+</html>
